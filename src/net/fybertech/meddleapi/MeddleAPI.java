@@ -31,7 +31,7 @@ public class MeddleAPI
 
 	public static String getVersion()
 	{
-		return "1.0-alpha";
+		return "1.0";
 	}
 
 
@@ -83,7 +83,11 @@ public class MeddleAPI
 				LOGGER.info("[MeddleAPI] Init() - " + modClass.getClass().getName());
 				Method init = modClass.getClass().getMethod("init");
 				init.invoke(modClass);
-			} catch (Exception e) {}
+			} 
+			catch (Exception e) 
+			{
+				e.printStackTrace();
+			}
 		}
 
 		proxy.refreshResources();

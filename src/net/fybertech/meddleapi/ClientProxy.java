@@ -20,6 +20,7 @@ public class ClientProxy extends CommonProxy
 	
 	
 	static FontRenderer fontRenderer = null;
+	static String mappingsVersion = null;
 	
 	public static void drawMainMenuBranding(GuiScreen gui)
 	{				
@@ -37,8 +38,25 @@ public class ClientProxy extends CommonProxy
 			if (fontRenderer == null) return;
 		}
 			
-		gui.drawString(fontRenderer, "MeddleAPI " + MeddleAPI.getVersion(),  2,  gui.height - 30,  0xFFFFFF);
-		gui.drawString(fontRenderer, "Meddle " + Meddle.getVersion(),  2,  gui.height - 20,  0xFFFFFF);
+		if (mappingsVersion == null) {
+			Meddle.ModContainer mc = Meddle.loadedModsList.get("dynamicmappings");
+			if (mc != null) mappingsVersion = mc.meta.version();
+			else mappingsVersion = "n/a";
+		}
 		
+		int modCount;
+		String modOrMods;		
+		
+		gui.drawString(fontRenderer, "Meddle " + Meddle.getVersion(),  2,  gui.height - 60,  0xFFFFFF);		
+		modCount = Meddle.loadedModsList.size();
+		modOrMods = modCount == 1 ? " mod" : " mods";
+		gui.drawString(fontRenderer, "  " + modCount + modOrMods + " loaded", 2,  gui.height - 50,  0xAAAAAA);
+		
+		gui.drawString(fontRenderer, "MeddleAPI " + MeddleAPI.getVersion(),  2,  gui.height - 40,  0xFFFFFF);		
+		modCount = MeddleAPI.apiMods.size();
+		modOrMods = modCount == 1 ? " mod" : " mods";		
+		gui.drawString(fontRenderer, "  " + modCount + modOrMods + " loaded", 2, gui.height - 30, 0xAAAAAA);
+		
+		gui.drawString(fontRenderer, "DynamicMappings " + mappingsVersion, 2, gui.height - 20, 0xFFFFFF);	
 	}
 }
