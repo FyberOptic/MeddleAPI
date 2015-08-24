@@ -25,7 +25,7 @@ targetCompatibility = '1.7'
 
 jar {
     baseName = 'meddleapi'
-    version = '1.0'
+    version = '1.0.1-alpha'
     
     manifest {
 		attributes('TweakClass' : 'net.fybertech.meddleapi.tweak.APITweaker')

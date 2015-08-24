@@ -83,79 +83,6 @@ public class ClientTransformer implements IClassTransformer
 		ClassWriter writer = new ClassWriter(0);
 		cn.accept(writer);
 		return writer.toByteArray();
-		
-		
-		/*for (MethodNode method : (List<MethodNode>)cn.methods) {
-			if (!DynamicMappings.checkMethodParameters(method, Type.INT, Type.INT, Type.FLOAT)) continue;
-			if ((method.access & Opcodes.ACC_PUBLIC) != Opcodes.ACC_PUBLIC) continue;			
-						
-			FieldInsnNode fontRendererVar = null;
-			FieldInsnNode heightVar = null;
-			MethodInsnNode invokeDrawString = null;			
-			boolean foundFirst = false;
-			boolean foundSecond = false;
-			
-			for (AbstractInsnNode insn = method.instructions.getFirst(); insn != null; insn = insn.getNext()) 
-			{
-				if (foundFirst && !foundSecond && DynamicMappings.isLdcWithString(insn, " Demo")) {
-					foundSecond = true;
-					continue;
-				}
-				
-				if (foundSecond) 
-				{					
-					// First we want GuiMainMenu.fontRendererObj
-					if (fontRendererVar == null && insn.getOpcode() == Opcodes.GETFIELD) {
-						FieldInsnNode fn = (FieldInsnNode)insn;
-						if (fn.owner.equals(cn.name)) fontRendererVar = fn;
-						continue;
-					}
-					// Next we want GuiMainMenu.height
-					if (heightVar == null && insn.getOpcode() == Opcodes.GETFIELD) {
-						FieldInsnNode fn = (FieldInsnNode)insn;						
-						if (fn.owner.equals(cn.name)) heightVar = fn;
-						continue;
-					}
-					// Finally we want GuiMainMenu.drawString
-					if (invokeDrawString == null && insn.getOpcode() == Opcodes.INVOKEVIRTUAL) {
-						MethodInsnNode min = (MethodInsnNode)insn;
-						if (min.owner.equals(cn.name)) { invokeDrawString = min; break; }
-					}
-					continue;
-				}					
-				
-				String string = DynamicMappings.getLdcString(insn);
-				if (string != null && string.startsWith("Minecraft")) foundFirst = true;	
-			}
-			
-			// If everything was found, insert code to draw branding to the main menu
-			if (MeddleUtil.notNull(fontRendererVar, heightVar, invokeDrawString)) 
-			{
-				// TODO - Confirm invokeDrawString's types
-				
-				InsnList il = new InsnList();
-				il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-				il.add(new VarInsnNode(Opcodes.ALOAD, 0));
-				il.add(new FieldInsnNode(Opcodes.GETFIELD, fontRendererVar.owner, fontRendererVar.name, fontRendererVar.desc));
-				il.add(new LdcInsnNode("MeddleAPI v" + MeddleAPI.getVersion()));
-				il.add(new LdcInsnNode(new Integer(2))); // X
-				il.add(new VarInsnNode(Opcodes.ALOAD, 0)); // Start calculating Y
-				il.add(new FieldInsnNode(Opcodes.GETFIELD, heightVar.owner, heightVar.name, heightVar.desc));
-				il.add(new LdcInsnNode(new Integer(20)));
-				il.add(new InsnNode(Opcodes.ISUB)); // substract 20 from height
-				il.add(new LdcInsnNode(new Integer(0xFFFFFF))); // Color
-				il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, invokeDrawString.owner, invokeDrawString.name, invokeDrawString.desc, false));
-				
-				method.instructions.insert(invokeDrawString, il);
-				
-				ClassWriter writer = new ClassWriter(0);
-				cn.accept(writer);
-				return writer.toByteArray();
-			}
-		}*/
-		
-		
-		//return basicClass;
 	}
 	
 	
@@ -167,14 +94,17 @@ public class ClientTransformer implements IClassTransformer
 		ClassNode cn = new ClassNode();
 		reader.accept(cn,  0);
 		
+		
+		// private void startGame() throws LWJGLException
+		
+		boolean finished = false;
 		for (MethodNode method : (List<MethodNode>)cn.methods) {
 			//if (!DynamicMappings.checkMethodParameters(method, Type.OBJECT)) continue;
 			Type t = Type.getMethodType(method.desc);
 			if (t.getReturnType().getSort() != Type.VOID) continue;			
 			if (t.getArgumentTypes().length != 0) continue;
 			
-			boolean foundFirst = false;
-			boolean foundSecond = false;			
+			boolean foundFirst = false;				
 			for (AbstractInsnNode insn = method.instructions.getFirst(); insn != null; insn = insn.getNext()) 
 			{
 				// TODO: Add a default resource pack while here
@@ -202,17 +132,21 @@ public class ClientTransformer implements IClassTransformer
 						InsnList list = new InsnList();						
 						list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/MeddleAPI", "init", "()V", false));
 						method.instructions.insert(insn, list);
+						
+						finished = true;
 					}
 					else { /* TODO: Error */ }
 					break;
 				}
 								
 				//if (!foundSecond && !DynamicMappings.isLdcWithString(insn, "Post startup")) continue;
-				//foundSecond = true;				
-								
-			}		
-		}		
+				//foundSecond = true;					
+			}
+			
+			if (finished) break;
+		}
 		
+				
 		ClassWriter writer = new ClassWriter(0); 
 		cn.accept(writer);
 		return writer.toByteArray();	

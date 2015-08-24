@@ -13,10 +13,22 @@ import net.fybertech.meddle.Meddle;
 import net.fybertech.meddle.MeddleUtil;
 import net.fybertech.meddle.Meddle.ModContainer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.command.ICommand;
+import net.minecraft.command.ICommandManager;
 import net.minecraft.item.Item;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.command.CommandHandler;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+// Changelog
+// v1.0.1
+// - Added ability to get MinecraftServer instance
+// - Added the ability to register ICommand handlers.
+//   -  Handlers are automatically re-registered when client restarts integrated server
+// - 
+
 
 public class MeddleAPI
 {
@@ -24,23 +36,25 @@ public class MeddleAPI
 	public static final Logger LOGGER = LogManager.getLogger("MeddleAPI");
 	public static List<Object> apiMods = new ArrayList<Object>();
 
-	public static CommonProxy proxy;
+	// Only needed for clients, they're registered immediately on servers
+	public static List<ICommand> delayedICommands = new ArrayList<ICommand>();
+	
+	public static CommonProxy proxy = (CommonProxy)createProxyInstance("net.fybertech.meddleapi.CommonProxy",  "net.fybertech.meddleapi.ClientProxy");
 	
 	public static Object mainObject = null;
 
 
 	public static String getVersion()
 	{
-		return "1.0";
+		return "1.0.1-alpha";
 	}
 
 
+		
 	public static void preInit(Object obj)
 	{
 		LOGGER.info("[MeddleAPI] PreInit Phase");
 		mainObject = obj;
-		
-		proxy = (CommonProxy)createProxyInstance("net.fybertech.meddleapi.CommonProxy",  "net.fybertech.meddleapi.ClientProxy");
 		
 		
 		for (ModContainer meddleMod : Meddle.discoveredModsList) 
@@ -167,6 +181,39 @@ public class MeddleAPI
 		
 		
 		return null;
+	}
+	
+	
+	public static ICommandManager getICommandManager()
+	{
+		return getServer().getCommandManager();
+	}
+	
+	
+	public static MinecraftServer getServer()
+	{
+		return proxy.getServer(mainObject);
+	}
+	
+	
+	
+	public static void registerCommandHandler(ICommand cmd)
+	{
+		if (MeddleUtil.isClientJar()) delayedICommands.add(cmd);
+		else {
+			((CommandHandler) getServer().getCommandManager()).registerCommand(cmd);
+		}
+	}
+	
+	public static void onServerRunHook(MinecraftServer server)
+	{	
+		if (MeddleUtil.isClientJar()) {			
+			CommandHandler cmdHandler = (CommandHandler) server.getCommandManager();
+			for (ICommand cmd : delayedICommands)
+			{
+				cmdHandler.registerCommand(cmd);
+			}
+		}
 	}
 
 }

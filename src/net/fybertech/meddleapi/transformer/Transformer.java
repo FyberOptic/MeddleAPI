@@ -22,7 +22,12 @@ import net.minecraft.launchwrapper.IClassTransformer;
 public class Transformer implements IClassTransformer 
 {
 
-	String minecraftServer = "net.minecraft.server.MinecraftServer";	
+	// TODO - Implement better system for access transformations
+	
+	
+	String minecraftServer = "net.minecraft.server.MinecraftServer";
+	String blockClass = DynamicMappings.getClassMapping("net/minecraft/block/Block");
+	String itemClass = DynamicMappings.getClassMapping("net/minecraft/item/Item");
 	String dedicatedServerClass = null;
 	String startServer_name = null;
 	
@@ -32,54 +37,115 @@ public class Transformer implements IClassTransformer
 	{		
 		if (name.equals(minecraftServer)) return transformMinecraftServer(basicClass);
 		if (dedicatedServerClass != null && dedicatedServerClass.equals(name)) return transformDedicatedServer(basicClass);
+		if (blockClass != null && name.equals(blockClass)) return transformBlock(basicClass);
+		if (itemClass != null && name.equals(itemClass)) return transformItem(basicClass);
 		return basicClass;
+	}
+	
+	private byte[] transformBlock(byte[] basicClass)
+	{
+		ClassReader reader = new ClassReader(basicClass);
+		ClassNode cn = new ClassNode();
+		reader.accept(cn,  0);	
+		
+		for (MethodNode method : cn.methods) 
+		{
+			// Make Block constructors public
+			if (method.name.equals("<init>")) method.access = (method.access & ~Opcodes.ACC_PROTECTED) | Opcodes.ACC_PUBLIC;			
+			
+			// Make registration methods public			
+			String mapping = DynamicMappings.getReverseMethodMapping(cn.name + " " + method.name + " " + method.desc);
+			if (mapping != null && mapping.startsWith("net/minecraft/block/Block registerBlock ")) {
+				method.access = (method.access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC;	
+			}			 
+		}	
+		
+		ClassWriter writer = new ClassWriter(0);
+		cn.accept(writer);
+		return writer.toByteArray();		
+	}
+	
+	
+	private byte[] transformItem(byte[] basicClass)
+	{
+		ClassReader reader = new ClassReader(basicClass);
+		ClassNode cn = new ClassNode();
+		reader.accept(cn,  0);	
+		
+		int allAccess = Opcodes.ACC_PUBLIC | Opcodes.ACC_PROTECTED | Opcodes.ACC_PRIVATE;
+		
+		for (MethodNode method : cn.methods) 
+		{			
+			// Make registration methods public			
+			String mapping = DynamicMappings.getReverseMethodMapping(cn.name + " " + method.name + " " + method.desc);
+			if (mapping != null && mapping.startsWith("net/minecraft/item/Item registerItem")) {
+				method.access = (method.access & ~allAccess) | Opcodes.ACC_PUBLIC;	
+			}			 
+		}	
+		
+		ClassWriter writer = new ClassWriter(0);
+		cn.accept(writer);
+		return writer.toByteArray();		
 	}
 
 	
 	private byte[] transformMinecraftServer(byte[] basicClass)
 	{
-		if (MeddleUtil.isClientJar()) return basicClass;
-		
 		ClassReader reader = new ClassReader(basicClass);
 		ClassNode cn = new ClassNode();
 		reader.accept(cn,  0);	
 		
-		for (MethodNode method : cn.methods) {
-			if (method.name.equals("main") && method.desc.equals("([Ljava/lang/String;)V")) {
-				for (AbstractInsnNode insn = method.instructions.getFirst(); insn != null; insn = insn.getNext()) 
-				{
-					if (insn.getOpcode() != Opcodes.NEW) continue;				
-					TypeInsnNode tn = (TypeInsnNode)insn;			
-					
-					if (DynamicMappings.searchConstantPoolForStrings(tn.desc, "Loading properties", "spawn-protection")) {
-						dedicatedServerClass = tn.desc;
-						break;
-					}
-				}
-			}
-			if (dedicatedServerClass != null) break;
-		}	
-		
-		if (dedicatedServerClass == null) {
-			MeddleAPI.LOGGER.error("[MeddleAPI] Error locating DedicatedServer class!");
-			return basicClass;
-		}
-		
 		
 		// Find DedicatedServer.startServer() in MinecraftServer.run()
 		List<MethodNode> methods = DynamicMappings.getMatchingMethods(cn, "run", "()V");
-		if (methods.size() == 1) {
-			for (AbstractInsnNode insn = methods.get(0).instructions.getFirst(); insn != null; insn = insn.getNext()) {
+		if (methods.size() == 1) 
+		{			
+			MethodNode method = methods.get(0);			
+			for (AbstractInsnNode insn = method.instructions.getFirst(); insn != null; insn = insn.getNext()) {
 				if (insn.getOpcode() != Opcodes.INVOKEVIRTUAL) continue;
 				MethodInsnNode mn = (MethodInsnNode)insn;
-				if (mn.desc.equals("()Z")) {
+				if (mn.owner.equals("net/minecraft/server/MinecraftServer") && mn.desc.equals("()Z")) {
 					startServer_name = mn.name;
 					break;
 				}
 			}
+			
+			InsnList list = new InsnList();
+			list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+			list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/MeddleAPI", "onServerRunHook", "(Lnet/minecraft/server/MinecraftServer;)V", false));
+			
+			method.instructions.insertBefore(method.instructions.getFirst(), list); 
+					 
 		}
 		
-		return basicClass;
+		
+		if (!MeddleUtil.isClientJar())
+		{
+			for (MethodNode method : cn.methods) {
+				if (method.name.equals("main") && method.desc.equals("([Ljava/lang/String;)V")) {
+					for (AbstractInsnNode insn = method.instructions.getFirst(); insn != null; insn = insn.getNext()) 
+					{
+						if (insn.getOpcode() != Opcodes.NEW) continue;				
+						TypeInsnNode tn = (TypeInsnNode)insn;			
+						
+						if (DynamicMappings.searchConstantPoolForStrings(tn.desc, "Loading properties", "spawn-protection")) {
+							dedicatedServerClass = tn.desc;
+							break;
+						}
+					}
+				}
+				if (dedicatedServerClass != null) break;
+			}	
+			
+			if (dedicatedServerClass == null) {
+				MeddleAPI.LOGGER.error("[MeddleAPI] Error locating DedicatedServer class!");
+			}
+		}
+				
+		
+		ClassWriter writer = new ClassWriter(0);
+		cn.accept(writer);
+		return writer.toByteArray();		
 	}
 	
 	

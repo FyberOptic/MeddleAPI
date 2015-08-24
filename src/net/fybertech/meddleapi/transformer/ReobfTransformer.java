@@ -40,10 +40,10 @@ public class ReobfTransformer implements IClassTransformer
 
 	@Override
 	public byte[] transform(String name, String transformedName, byte[] basicClass)
-	{
+	{		
 		if (!name.contains(".")) return basicClass;
 		for (String ex : exclusions) { if (name.startsWith(ex)) return basicClass; }
-
+		
 		return toObfRemapper.remapClass(basicClass);
 	}
 
@@ -58,6 +58,7 @@ public class ReobfTransformer implements IClassTransformer
 				DynamicMappings.reverseMethodMappings);
 
 		toDeobfRemapper.unpackagedPrefix = null;
+		toDeobfRemapper.unpackagedInnerPrefix = null;
 
 
 		toObfRemapper = new DynamicRemap(
@@ -75,7 +76,10 @@ public class ReobfTransformer implements IClassTransformer
 					return toDeobfRemapper.remapClass(DynamicMappings.classMappings.get(className));
 				}
 
-				File f = new File(className + ".class");
+				return super.getClassNode(className);
+				
+				
+				/*File f = new File(className + ".class");
 				if (!f.exists()) return super.getClassNode(className);
 
 				InputStream stream = null;
@@ -93,7 +97,7 @@ public class ReobfTransformer implements IClassTransformer
 				ClassNode cn = new ClassNode();
 				reader.accept(cn, 0);
 
-				return cn;
+				return cn;*/
 			}
 
 		};
