@@ -3,6 +3,7 @@ package net.fybertech.meddleapi;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -12,6 +13,8 @@ import net.fybertech.dynamicmappings.DynamicMappings;
 import net.fybertech.meddle.Meddle;
 import net.fybertech.meddle.MeddleUtil;
 import net.fybertech.meddle.Meddle.ModContainer;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandManager;
@@ -144,6 +147,24 @@ public class MeddleAPI
 		}
 	}
 
+	
+	
+	public static void registerBlock(int blockID, String blockName, Block block)
+	{
+		Block.registerBlock(blockID, blockName, block);		
+		
+		Iterator<IBlockState> it = block.getBlockState().getValidStates().iterator();
+		while (it.hasNext()) {
+			IBlockState ibs = it.next();
+			int var23 = Block.blockRegistry.a(block) << 4 | block.getMetaFromState(ibs);  // TODO: blockRegistry.getIDForObject
+            Block.BLOCK_STATE_IDS.put(ibs, var23); 
+		}		
+		
+		Item.registerItemBlock(block);
+	}
+	
+	
+	
 
 	// Creates an instance of a class based on whether we're a client or server jar 
 	public static Object createProxyInstance(String serverClass, String clientClass) 
