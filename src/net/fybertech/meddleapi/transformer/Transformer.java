@@ -1,12 +1,20 @@
 package net.fybertech.meddleapi.transformer;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -15,6 +23,9 @@ import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 import net.fybertech.dynamicmappings.DynamicMappings;
+import net.fybertech.dynamicmappings.InheritanceMap;
+import net.fybertech.dynamicmappings.InheritanceMap.FieldHolder;
+import net.fybertech.dynamicmappings.InheritanceMap.MethodHolder;
 import net.fybertech.meddle.MeddleUtil;
 import net.fybertech.meddleapi.MeddleAPI;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -28,19 +39,51 @@ public class Transformer implements IClassTransformer
 	String minecraftServer = "net.minecraft.server.MinecraftServer";
 	String blockClass = DynamicMappings.getClassMapping("net/minecraft/block/Block");
 	String itemClass = DynamicMappings.getClassMapping("net/minecraft/item/Item");
+	String slotClass = DynamicMappings.getClassMapping("net/minecraft/inventory/Slot");
 	String dedicatedServerClass = null;
 	String startServer_name = null;
+	
+	
+
+	
+
 	
 	
 	@Override
 	public byte[] transform(String name, String transformedName, byte[] basicClass) 
 	{		
-		if (name.equals(minecraftServer)) return transformMinecraftServer(basicClass);
-		if (dedicatedServerClass != null && dedicatedServerClass.equals(name)) return transformDedicatedServer(basicClass);
-		if (blockClass != null && name.equals(blockClass)) return transformBlock(basicClass);
-		if (itemClass != null && name.equals(itemClass)) return transformItem(basicClass);
+		if (name.equals(minecraftServer)) basicClass = transformMinecraftServer(basicClass);
+		else if (dedicatedServerClass != null && dedicatedServerClass.equals(name)) basicClass = transformDedicatedServer(basicClass);
+		//if (blockClass != null && name.equals(blockClass)) return transformBlock(basicClass);
+		//if (itemClass != null && name.equals(itemClass)) return transformItem(basicClass);
+		//if (slotClass != null && name.equals(slotClass)) return transformSlot(basicClass);
+		
 		return basicClass;
 	}
+	
+	
+	
+	
+
+	
+	
+	/*private byte[] transformSlot(byte[] basicClass)
+	{
+		ClassReader reader = new ClassReader(basicClass);
+		ClassNode cn = new ClassNode();
+		reader.accept(cn,  0);			
+		
+		for (FieldNode field : cn.fields) {
+			if (field.desc.equals("I")) {
+				field.access = (field.access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC; 
+			}
+		}
+		
+		ClassWriter writer = new ClassWriter(0);
+		cn.accept(writer);
+		return writer.toByteArray();		
+	}
+	
 	
 	private byte[] transformBlock(byte[] basicClass)
 	{
@@ -86,7 +129,7 @@ public class Transformer implements IClassTransformer
 		ClassWriter writer = new ClassWriter(0);
 		cn.accept(writer);
 		return writer.toByteArray();		
-	}
+	}*/
 
 	
 	private byte[] transformMinecraftServer(byte[] basicClass)

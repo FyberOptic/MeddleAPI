@@ -5,13 +5,14 @@ import java.util.List;
 
 import net.fybertech.meddle.MeddleMod;
 import net.fybertech.meddle.MeddleUtil;
+import net.fybertech.meddleapi.transformer.AccessTransformer;
 import net.fybertech.meddleapi.transformer.ClientTransformer;
 import net.fybertech.meddleapi.transformer.ReobfTransformer;
 import net.fybertech.meddleapi.transformer.Transformer;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 
-@MeddleMod(id="meddleapi", name="MeddleAPI", version="1.0.1-alpha", author="FyberOptic", depends={"dynamicmappings"})
+@MeddleMod(id="meddleapi", name="MeddleAPI", version="1.0.2", author="FyberOptic", depends={"dynamicmappings"})
 public class APITweaker implements ITweaker
 {
 	
@@ -22,8 +23,8 @@ public class APITweaker implements ITweaker
 	@Override
 	public void injectIntoClassLoader(LaunchClassLoader classLoader) 
 	{		
-		classLoader.registerTransformer(ReobfTransformer.class.getName());
-		
+		classLoader.registerTransformer(AccessTransformer.class.getName());
+		classLoader.registerTransformer(ReobfTransformer.class.getName());		
 		classLoader.registerTransformer(Transformer.class.getName());
 		if (MeddleUtil.isClientJar()) classLoader.registerTransformer(ClientTransformer.class.getName());		
 	}

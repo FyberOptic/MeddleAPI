@@ -104,7 +104,12 @@ public class ConfigFile
 				for (ConfigKey key : configData) {
 					if (!key.categoryName.equals(catName)) continue;					
 					
-					if (key.description != null) pw.println("  # " + key.description.replace("\n", "\n  # "));
+					if (key.description != null) {
+						pw.println("  # " + key.description.replace("\n", "\n  # "));
+						if (key.defaultValue != null) {
+							pw.println("  #\n  # Default: " + key.defaultValue.toString());
+						}
+					}
 					pw.println("  " + key.keyName + " = " + key.value.toString());
 					if (key.description != null) pw.println();
 				}

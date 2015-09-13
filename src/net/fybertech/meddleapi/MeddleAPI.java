@@ -11,6 +11,7 @@ import java.util.jar.Manifest;
 
 import net.fybertech.dynamicmappings.DynamicMappings;
 import net.fybertech.meddle.Meddle;
+import net.fybertech.meddle.Meddle;
 import net.fybertech.meddle.MeddleUtil;
 import net.fybertech.meddle.Meddle.ModContainer;
 import net.minecraft.block.Block;
@@ -30,7 +31,12 @@ import org.apache.logging.log4j.Logger;
 // - Added ability to get MinecraftServer instance
 // - Added the ability to register ICommand handlers.
 //   -  Handlers are automatically re-registered when client restarts integrated server
-// - 
+// 
+// v1.0.2
+// - Added access transformer
+// - Added some early GUI hooks
+// - Added a basic config file system
+// - Added custom block renderer
 
 
 public class MeddleAPI
@@ -49,7 +55,7 @@ public class MeddleAPI
 
 	public static String getVersion()
 	{
-		return "1.0.1-alpha";
+		return "1.0.2";
 	}
 
 
@@ -156,7 +162,7 @@ public class MeddleAPI
 		Iterator<IBlockState> it = block.getBlockState().getValidStates().iterator();
 		while (it.hasNext()) {
 			IBlockState ibs = it.next();
-			int var23 = Block.blockRegistry.a(block) << 4 | block.getMetaFromState(ibs);  // TODO: blockRegistry.getIDForObject
+			int var23 = Block.blockRegistry.getIDForObject(block) << 4 | block.getMetaFromState(ibs);
             Block.BLOCK_STATE_IDS.put(ibs, var23); 
 		}		
 		
@@ -207,7 +213,7 @@ public class MeddleAPI
 	
 	public static ICommandManager getICommandManager()
 	{
-		return getServer().getCommandManager();
+		return MeddleAPI.getServer().getCommandManager();
 	}
 	
 	

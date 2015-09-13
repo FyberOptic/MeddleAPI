@@ -1,12 +1,16 @@
 package net.fybertech.meddleapi.transformer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
 
 import net.fybertech.dynamicmappings.DynamicMappings;
@@ -47,19 +51,94 @@ public class ReobfTransformer implements IClassTransformer
 		return toObfRemapper.remapClass(basicClass);
 	}
 
+	
+	
+	public static byte[] readStream(InputStream stream) throws IOException {
 
+	    byte[] buffer = new byte[1024];
+	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+	    int bytesRead = 0;
+	    while ((bytesRead = stream.read(buffer)) != -1) {
+	        baos.write(buffer, 0, bytesRead);
+	    }
+	    stream.close();
+	    baos.flush();
+	    baos.close();
+	    return baos.toByteArray();
+	}
 
 
 	public ReobfTransformer()
 	{
+		
+		final AccessTransformer accessTransformer = new AccessTransformer();
+		
+		
 		final DynamicRemap toDeobfRemapper = new DynamicRemap(
 				DynamicMappings.reverseClassMappings,
 				DynamicMappings.reverseFieldMappings,
-				DynamicMappings.reverseMethodMappings);
+				DynamicMappings.reverseMethodMappings) {
+		
+			Map<String, ClassNode> transformedCache = new HashMap<>();		
+			
+			
+			@Override
+			public ClassNode remapClass(String className) 
+			{
+				// TODO - Cache this, otherwise multiple access transformations occur
+				
+				if (className == null) return null;
+				InputStream stream = getClass().getClassLoader().getResourceAsStream(className + ".class");
+				
+				byte[] data = null;
+				try {
+					data = readStream(stream);
+				} catch (IOException e) {}
+				if (data == null) return null;				
+				
+				ClassReader reader = new ClassReader(accessTransformer.transform(className, className, data));
+				
+				return remapClass(reader);				
+			}
+			
+			
+			@Override
+			public ClassNode getClassNode(String className) 
+			{
+				if (transformedCache.containsKey(className)) return transformedCache.get(className);
+				
+				ClassNode cn = super.getClassNode(className);
+				ClassWriter writer = new ClassWriter(0);
+				cn.accept(writer);
+				
+				byte[] bytes = accessTransformer.transform(cn.name, cn.name, writer.toByteArray());
+				
+				ClassReader reader = new ClassReader(bytes);
+				ClassNode outNode = new ClassNode();
+				reader.accept(outNode, 0);
+				
+				transformedCache.put(className, outNode);
+				
+				return outNode;
+			}			
+			
+		};
 
 		toDeobfRemapper.unpackagedPrefix = null;
 		toDeobfRemapper.unpackagedInnerPrefix = null;
+		
+		toDeobfRemapper.inheritanceMapper = new InheritanceMap() {
+			@Override
+			public ClassNode locateClass(String classname) throws IOException
+			{
+				return toDeobfRemapper.getClassNode(classname);
+			}
+		};
+		
 
+		
+		
 
 		toObfRemapper = new DynamicRemap(
 				DynamicMappings.classMappings,
@@ -67,7 +146,7 @@ public class ReobfTransformer implements IClassTransformer
 				DynamicMappings.methodMappings) {
 
 			@Override
-			protected ClassNode getClassNode(String className) {
+			public ClassNode getClassNode(String className) {
 				if (className == null) return null;
 
 				className = className.replace(".", "/");
@@ -76,28 +155,7 @@ public class ReobfTransformer implements IClassTransformer
 					return toDeobfRemapper.remapClass(DynamicMappings.classMappings.get(className));
 				}
 
-				return super.getClassNode(className);
-				
-				
-				/*File f = new File(className + ".class");
-				if (!f.exists()) return super.getClassNode(className);
-
-				InputStream stream = null;
-				try {
-					stream = new FileInputStream(f);
-				} catch (FileNotFoundException e1) {
-					e1.printStackTrace();
-				}
-
-				ClassReader reader = null;
-				try {
-					reader = new ClassReader(stream);
-				} catch (IOException e) { return null; }
-
-				ClassNode cn = new ClassNode();
-				reader.accept(cn, 0);
-
-				return cn;*/
+				return toDeobfRemapper.getClassNode(className);
 			}
 
 		};
@@ -109,9 +167,10 @@ public class ReobfTransformer implements IClassTransformer
 			@Override
 			public ClassNode locateClass(String classname) throws IOException
 			{
-				String out = DynamicMappings.getClassMapping(classname);
-				if (out != null) classname = out;
-				return toDeobfRemapper.remapClass(classname);
+				//String out = DynamicMappings.getClassMapping(classname);
+				//if (out != null) classname = out;
+				//return toDeobfRemapper.remapClass(classname);
+				return toObfRemapper.getClassNode(classname);
 			}
 		};
 	}
