@@ -4,4 +4,8 @@ An API layer and remapper to make it easier to create mods for the Meddle launch
 
 See also:
 [ConnectedGlass](https://github.com/FyberOptic/ConnectedGlass)
+
+[DoubleDoors](https://github.com/FyberOptic/DoubleDoors)
+
 [JustBackpack](https://github.com/FyberOptic/JustBackpack)
+
