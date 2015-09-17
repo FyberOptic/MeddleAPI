@@ -34,6 +34,8 @@ public class MeddleClient
 		keyBindStateHandlers.add(handler);
 	}
 	
+	
+	// NOTE: Rendering is multi-threaded, so keep that in mind when designing a custom renderer
 	public static void registerCustomBlockRenderer(Block block, ICustomBlockRenderer renderer)
 	{
 		customBlockRenderers.put(block, renderer);		
