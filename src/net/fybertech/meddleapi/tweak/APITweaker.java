@@ -12,7 +12,7 @@ import net.fybertech.meddleapi.transformer.Transformer;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 
-@MeddleMod(id="meddleapi", name="MeddleAPI", version="1.0.2", author="FyberOptic", depends={"dynamicmappings"})
+@MeddleMod(id="meddleapi", name="MeddleAPI", version="1.0.3", author="FyberOptic", depends={"dynamicmappings"})
 public class APITweaker implements ITweaker
 {
 	

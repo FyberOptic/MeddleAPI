@@ -1,13 +1,21 @@
 package net.fybertech.meddleapi;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
+import java.util.StringTokenizer;
 import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import net.fybertech.dynamicmappings.DynamicMappings;
 import net.fybertech.meddle.Meddle;
@@ -37,7 +45,11 @@ import org.apache.logging.log4j.Logger;
 // - Added some early GUI hooks
 // - Added a basic config file system
 // - Added custom block renderer
-
+// 
+// v1.0.3
+// - Added mappings scan for mods to confirm they exist before loading
+// - Fixed bug in ConfigFile, keys with capitalization weren't being found.
+//
 
 public class MeddleAPI
 {
@@ -55,10 +67,109 @@ public class MeddleAPI
 
 	public static String getVersion()
 	{
-		return "1.0.2";
+		return "1.0.3";
 	}
 
 
+	
+	/**
+	 * Compares a list of mappings in the specified file to the available mappings
+	 * and returns a list of the ones not available.  Takes client and server-side 
+	 * availability into consideration.
+	 * 
+	 * The format of a generatedmappings.cfg file is:  [C|F|M] [1|2|3] MAPPING
+	 * 
+	 * The first parameter is the type of mapping: 
+	 * C = Class, F = Field, M = method
+	 * 
+	 * The second parameter is the Minecraft "side":
+	 * 1 = client, 2 = server, 3 = either
+	 * 
+	 * The mapping is the exact line of the mapping from DynamicMappings.
+	 * 
+	 * @param stream The stream of a generatedmappings.cfg-formatted file.
+	 * @return The list of mappings that the file specifies which aren't present.
+	 * @throws IOException
+	 */
+	private static List<String> findMissingMappings(InputStream stream) throws IOException
+	{
+		List<String> missingMappings = new ArrayList<>();	
+		boolean isClient = MeddleUtil.isClientJar();			
+		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));				
+		String line = null;
+		
+		while ((line = reader.readLine()) != null) {
+			// Ignore commented or short lines
+			if (line.startsWith("#") || line.length() < 1) continue;
+			
+			// Format: [C|F|M] [1|2|3] MAPPING
+			String[] split = line.split(" ", 3);
+			if (split.length != 3) continue;
+			
+			// 1 == client, 2 == server, 3 == either
+			int side = 0;
+			try { side = Integer.parseInt(split[1]); }
+			catch (NumberFormatException e) { continue; }
+			if (side < 1 || side > 3) continue;
+			
+			// Skip if we're the client and it's a server mapping
+			if (isClient && side == 2) continue;
+			// Skip if we're the server and it's a client mapping
+			if (!isClient && side == 1) continue;
+			
+			boolean hasMapping = false;
+			String mapping = split[2];
+			
+			char type = split[0].toUpperCase().charAt(0);
+			switch (type) {
+				case 'C': if (DynamicMappings.classMappings.containsKey(mapping)) hasMapping = true; break;
+				case 'F': if (DynamicMappings.fieldMappings.containsKey(mapping)) hasMapping = true; break;
+				case 'M': if (DynamicMappings.methodMappings.containsKey(mapping)) hasMapping = true; break;
+			}
+			
+			if (!hasMapping) missingMappings.add(mapping);
+		}		
+		reader.close();
+		
+		return missingMappings;
+	}
+	
+	
+	/**
+	 * Locates a generatedmappings.cfg in the specified mod jar, and if present, scans it
+	 * to confirm all listed mappings are present.  
+	 * 
+	 * @see findMissingMappings(InputStream stream)
+	 * @param jarFile The mod jar to analyze for mappings.
+	 * @return True if all mappings exist or if no generatedmappings.cfg is present.
+	 */
+	private static boolean hasRequiredMappings(JarFile jarFile)
+	{
+		ZipEntry entry = jarFile.getEntry("requiredmappings.cfg");
+		if (entry == null) return true;		
+		
+		String jarName = jarFile.getName().replace("\\", "/");
+		if (jarName.contains("/")) jarName = jarName.substring(jarName.lastIndexOf('/') + 1);
+		
+		List<String> missingMappings;
+		try {
+			missingMappings = findMissingMappings(jarFile.getInputStream(entry));
+		} catch (IOException e) {
+			LOGGER.error("[MeddleAPI] Error reading requiredmappings.cfg from " + jarName);
+			return false;		
+		}
+		
+		if (missingMappings.size() > 0) {
+			LOGGER.error("[MeddleAPI] " + jarName + " has missing mappings, aborting mod initialization");
+			return false;		
+		}
+		
+		LOGGER.info("[MeddleAPI] All mappings present for " + jarName);
+		
+		return true;
+	}
+	
+	
 		
 	public static void preInit(Object obj)
 	{
@@ -69,8 +180,14 @@ public class MeddleAPI
 		for (ModContainer meddleMod : Meddle.discoveredModsList) 
 		{
 			Manifest manifest = null;
+			JarFile jarFile = null;
+			
 			try {
-				manifest = new JarFile(meddleMod.jar).getManifest();
+				jarFile = new JarFile(meddleMod.jar);
+			} catch (IOException e) { continue; }
+						
+			try {
+				manifest = jarFile.getManifest();
 			} catch (IOException e) {}
 			if (manifest == null) continue;
 
@@ -79,6 +196,12 @@ public class MeddleAPI
 
 			String apiModsAttr = attr.getValue("MeddleAPI-Mods");
 			if (apiModsAttr == null || apiModsAttr.length() < 1) continue;
+			
+			if (!hasRequiredMappings(jarFile)) continue;
+			
+			try {
+				if (jarFile != null) jarFile.close();
+			} catch (IOException e) {}
 			
 			String[] mods = apiModsAttr.split(" ");
 			for (String className : mods) 
@@ -120,6 +243,7 @@ public class MeddleAPI
 
 	private static Method registerItemMethod = null;
 
+	// TODO - Switch to using method directly now that we have access transformer
 	public static void registerItem(int itemID, String itemName, Item item)
 	{
 		if (registerItemMethod == null)

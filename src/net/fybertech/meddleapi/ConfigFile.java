@@ -162,8 +162,8 @@ public class ConfigFile
 		Map<String, String> category = getCategory(key.categoryName);
 		T output;
 		
-		if (category.containsKey(key.keyName)) {
-			String s = category.get(key.keyName);			
+		if (category.containsKey(key.keyName.toLowerCase())) {
+			String s = category.get(key.keyName.toLowerCase());
 			if (key.defaultValue instanceof Integer) key.setValue((T)(Integer)stringToInt(s));
 			else key.setValue((T)s);
 			configData.add(key);
