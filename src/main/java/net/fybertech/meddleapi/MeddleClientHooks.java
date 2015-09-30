@@ -17,9 +17,12 @@ import net.minecraft.world.IInteractionObject;
 
 public class MeddleClientHooks {
 
+	static boolean debug = false;
+	
+	
 	public static void displayGuiHook(EntityPlayerSP player, IInteractionObject iiobject)
 	{
-		System.out.println("displayGui: " + iiobject.getGuiID());
+		if (debug) System.out.println("displayGui: " + iiobject.getGuiID());
 		
 		MeddleClient.IDisplayGui handler = MeddleClient.guiHandlers.get(iiobject.getGuiID());
 		if (handler != null) handler.onOpenGui(player, iiobject.getGuiID(), iiobject.getDisplayName(), 0);
@@ -28,7 +31,7 @@ public class MeddleClientHooks {
 	
 	public static boolean handleOpenWindowHook(EntityPlayerSP player, S2DPacketOpenWindow packet)
 	{
-		System.out.println("openWindowHook: " + packet.getGuiId() + " " + packet.getSlotCount());	
+		if (debug) System.out.println("openWindowHook: " + packet.getGuiId() + " " + packet.getSlotCount());	
 		
 		MeddleClient.IDisplayGui handler = MeddleClient.guiHandlers.get(packet.getGuiId());
 		if (handler != null) 

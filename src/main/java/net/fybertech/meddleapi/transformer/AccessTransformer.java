@@ -1,8 +1,14 @@
 package net.fybertech.meddleapi.transformer;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,17 +20,22 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import net.fybertech.dynamicmappings.AccessUtil;
 import net.fybertech.dynamicmappings.DynamicMappings;
 import net.fybertech.dynamicmappings.InheritanceMap;
 import net.fybertech.dynamicmappings.InheritanceMap.FieldHolder;
 import net.fybertech.dynamicmappings.InheritanceMap.MethodHolder;
+import net.fybertech.meddleapi.tweak.APITweaker;
 import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraft.launchwrapper.Launch;
 
 public class AccessTransformer  implements IClassTransformer
 {
 
-	static String[] fieldTransformers = new String[] {
-		"net/minecraft/inventory/Slot * I 1"
+	/*static String[] fieldTransformers = new String[] {
+		"net/minecraft/inventory/Slot * I 1",
+		"net/minecraft/item/crafting/ShapedRecipes * * 1",
+		"net/minecraft/item/crafting/ShapelessRecipes * * 1"
 	};
 	
 	static String[] methodTransformers = new String[] {
@@ -33,8 +44,9 @@ public class AccessTransformer  implements IClassTransformer
 		"net/minecraft/item/Item registerItem * 1",
 		"net/minecraft/item/Item registerItemBlock * 1",
 		"net/minecraft/client/gui/inventory/GuiContainer drawItemStack (Lnet/minecraft/item/ItemStack;IILjava/lang/String;)V 1"
-	};
+	};*/
 	
+		
 	static boolean processedTransformers = false;
 	static Map<String, Integer> expandedFieldTransformers = new HashMap<>();
 	static Map<String, Integer> expandedMethodTransformers = new HashMap<>();
@@ -89,15 +101,18 @@ public class AccessTransformer  implements IClassTransformer
 		return out;
 	}
 	
-	
+		
 	
 	public AccessTransformer()
 	{
 		if (processedTransformers) return;
 		
-		InheritanceMap inheritanceMap = new InheritanceMap();
+		AccessUtil accessUtil = new AccessUtil();
+		accessUtil.readAllTransformerConfigs();
 		
-		for (String transformer : fieldTransformers) {
+		InheritanceMap inheritanceMap = new InheritanceMap();		
+		
+		for (String transformer : accessUtil.accessTransformerFields) {
 			String[] split = transformer.split(" ");
 			if (split.length != 4) continue;
 			
@@ -165,7 +180,7 @@ public class AccessTransformer  implements IClassTransformer
 		}
 		
 		
-		for (String transformer : methodTransformers) {
+		for (String transformer : accessUtil.accessTransformerMethods) {
 			String[] split = transformer.split(" ");
 			if (split.length != 4) continue;
 			

@@ -1,13 +1,5 @@
 apply plugin: 'java'
 
-sourceSets {
-	main {
-		java {
-			srcDirs = ['src']
-		}
-	}
-}
-
 dependencies {
 	compile fileTree(dir:'../libs/', excludes:['minecraft/**'])
 	compile files('../DynamicMappings/mcremapped.jar')
@@ -25,7 +17,7 @@ targetCompatibility = '1.7'
 
 jar {
     baseName = 'meddleapi'
-    version = '1.0.3'
+    version = '1.0.4-alpha'
     
     manifest {
 		attributes('TweakClass' : 'net.fybertech.meddleapi.tweak.APITweaker')

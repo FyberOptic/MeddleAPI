@@ -50,6 +50,11 @@ import org.apache.logging.log4j.Logger;
 // - Added mappings scan for mods to confirm they exist before loading
 // - Fixed bug in ConfigFile, keys with capitalization weren't being found.
 //
+// v1.0.4
+// - Removed some debug output that got left in
+// - Added proper access transformer system
+// -
+
 
 public class MeddleAPI
 {
@@ -67,7 +72,7 @@ public class MeddleAPI
 
 	public static String getVersion()
 	{
-		return "1.0.3";
+		return "1.0.4-alpha";
 	}
 
 
@@ -168,9 +173,12 @@ public class MeddleAPI
 		
 		return true;
 	}
-	
-	
-		
+
+
+	/**
+	 *
+	 * @param obj
+	 */
 	public static void preInit(Object obj)
 	{
 		LOGGER.info("[MeddleAPI] PreInit Phase");
@@ -220,6 +228,10 @@ public class MeddleAPI
 		
 	}
 
+
+	/**
+	 *
+	 */
 	public static void init()
 	{
 		LOGGER.info("[MeddleAPI] Init Phase");
