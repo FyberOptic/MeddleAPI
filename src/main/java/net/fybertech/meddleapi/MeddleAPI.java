@@ -72,7 +72,7 @@ public class MeddleAPI
 
 	public static String getVersion()
 	{
-		return "1.0.4-alpha";
+		return "1.0.4";
 	}
 
 

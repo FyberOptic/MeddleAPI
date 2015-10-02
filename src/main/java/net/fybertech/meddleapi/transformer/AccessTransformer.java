@@ -1,17 +1,11 @@
 package net.fybertech.meddleapi.transformer;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import net.fybertech.dynamicmappings.AccessUtil;
+import net.fybertech.dynamicmappings.DynamicMappings;
+import net.fybertech.dynamicmappings.InheritanceMap;
+import net.fybertech.dynamicmappings.InheritanceMap.FieldHolder;
+import net.fybertech.dynamicmappings.InheritanceMap.MethodHolder;
+import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -20,14 +14,11 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import net.fybertech.dynamicmappings.AccessUtil;
-import net.fybertech.dynamicmappings.DynamicMappings;
-import net.fybertech.dynamicmappings.InheritanceMap;
-import net.fybertech.dynamicmappings.InheritanceMap.FieldHolder;
-import net.fybertech.dynamicmappings.InheritanceMap.MethodHolder;
-import net.fybertech.meddleapi.tweak.APITweaker;
-import net.minecraft.launchwrapper.IClassTransformer;
-import net.minecraft.launchwrapper.Launch;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class AccessTransformer  implements IClassTransformer
 {
