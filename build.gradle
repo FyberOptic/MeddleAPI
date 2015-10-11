@@ -1,10 +1,52 @@
+import java.nio.file.CopyOption
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+
 apply plugin: 'java'
 
-dependencies {
-	compile fileTree(dir:'../libs/', excludes:['minecraft/**'])
-	compile files('build/mcremapped.jar')
-	compile rootProject.project(':DynamicMappings')
+
+project.ext {
+    mcVersion = '15w41b'
+    cacheDir = 'cache/'
+
+    mcJarFilename = mcVersion + '.jar'
+    remappedJarFilename = 'remapped-' + mcVersion + '.jar'
 }
+
+
+configurations {
+    getmc
+}
+
+
+repositories {
+    mavenCentral()    
+    maven {         
+        url 'https://libraries.minecraft.net/'    
+    }    
+    maven {
+        url 'http://www.fybertech.net/maven/'
+    }
+}
+
+
+dependencies {
+    //compile fileTree(dir:'../libs/', excludes:['minecraft/**'])
+    //compile files('build/mcremapped.jar')
+    //compile rootProject.project(':DynamicMappings')
+    
+    compile 'net.fybertech:meddle:1.2.2'
+    compile 'net.fybertech:dynamicmappings:014'
+    compile 'net.minecraft:launchwrapper:1.11'
+    compile 'org.ow2.asm:asm-debug-all:5.0.3'
+    compile 'net.sf.jopt-simple:jopt-simple:4.6'    
+    compile fileTree(dir:'cache/libraries', exclude: '*asm-all*.jar')
+    
+    getmc "net.fybertech:greddle:1.0"
+}
+
 
 gradle.projectsEvaluated {
     tasks.withType(JavaCompile) {
@@ -12,8 +54,10 @@ gradle.projectsEvaluated {
     }
 }
 
+
 sourceCompatibility = '1.7'
 targetCompatibility = '1.7'
+
 
 jar {
     baseName = 'meddleapi'
@@ -23,3 +67,46 @@ jar {
 		attributes('TweakClass' : 'net.fybertech.meddleapi.tweak.APITweaker')
 	}   
 }
+
+
+afterEvaluate {
+    dependencies { compile files(new File("${->project.cacheDir}", "${->project.remappedJarFilename}")) }
+}
+
+
+task getMinecraft(type: JavaExec) {
+    main = 'net.fybertech.greddle.Greddle'
+    classpath = configurations.getmc
+    args = ["${->project.mcVersion}", "${->project.cacheDir}"]
+    outputs.dir { "${->project.cacheDir}" }
+}
+
+
+task remapMinecraft(type: JavaExec, dependsOn: 'getMinecraft') {
+    doFirst {
+        classpath files(new File(project.ext.cacheDir, "${->project.mcVersion}" + '.jar'))
+
+        configurations.compile.resolvedConfiguration.getResolvedArtifacts().each {
+            if (it.name.equals('meddle')) classpath it.getFile()
+            else if (it.name.equals('dynamicmappings')) classpath it.getFile()
+        }
+
+        classpath fileTree(new File("${->project.cacheDir}", 'libraries/'))
+    }
+    classpath sourceSets.main.resources.getSrcDirs()
+    main = 'net.fybertech.dynamicmappings.DynamicRemap'
+
+    doLast {
+        // Do all this until DynamicRemap accepts a destination jar
+        Path dest = (new File("${->project.cacheDir}", "${->project.remappedJarFilename}")).toPath()
+        println "Moving mapped jar to " + dest
+        Files.move(Paths.get('mcremapped.jar'), dest, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    inputs.file { files(new File("${->project.cacheDir}", "${->project.mcJarFilename}")) }
+    outputs.file { files(new File("${->project.cacheDir}", "${->project.remappedJarFilename}")) }
+}
+
+
+compileJava.dependsOn(remapMinecraft)
+
