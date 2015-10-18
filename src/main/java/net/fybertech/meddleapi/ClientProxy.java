@@ -6,6 +6,8 @@ import net.fybertech.dynamicmappings.DynamicMappings;
 import net.fybertech.meddle.Meddle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.server.MinecraftServer;
 
@@ -28,15 +30,11 @@ public class ClientProxy extends CommonProxy
 	}
 	
 	
-	
-	
-	
-	static FontRenderer fontRenderer = null;
 	static String mappingsVersion = null;
 	
 	public static void drawMainMenuBranding(GuiScreen gui)
 	{				
-		if (fontRenderer == null) {
+		/*if (fontRenderer == null) {
 			String fontRendererField = DynamicMappings.getFieldMapping("net/minecraft/client/gui/GuiScreen fontRendererObj Lnet/minecraft/client/gui/FontRenderer;");
 			if (fontRendererField == null) return;
 			
@@ -48,7 +46,8 @@ public class ClientProxy extends CommonProxy
 			} catch (Exception e) {}
 			
 			if (fontRenderer == null) return;
-		}
+		}*/
+		FontRenderer fontRenderer = gui.fontRendererObj;
 			
 		if (mappingsVersion == null) {
 			Meddle.ModContainer mc = Meddle.loadedModsList.get("dynamicmappings");
@@ -70,5 +69,25 @@ public class ClientProxy extends CommonProxy
 		gui.drawString(fontRenderer, "  " + modCount + modOrMods + " loaded", 2, gui.height - 30, 0xAAAAAA);
 		
 		gui.drawString(fontRenderer, "DynamicMappings " + mappingsVersion, 2, gui.height - 20, 0xFFFFFF);	
+	}
+	
+	
+	public static void initMainMenuHook(GuiMainMenu gui)
+	{
+		//System.out.println("INIT GUI");
+		
+		int x = gui.width / 2 + 104;
+		int y = gui.height / 4 + 48;
+		gui.buttonList.add(new GuiButton(25, x, y + 72 + 12, 20, 20, "M"));
+	}
+	
+	
+	public static boolean actionPerformedMainMenuHook(GuiMainMenu gui, GuiButton button)
+	{
+		if (button.id == 25) {			
+			Minecraft.getMinecraft().displayGuiScreen(new GuiMods(gui));			
+			return true;
+		}
+		else return false;
 	}
 }

@@ -1,0 +1,2 @@
+TweakClass: net.fybertech.dynamicmappings.Tweaker
+

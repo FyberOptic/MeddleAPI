@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -203,26 +204,58 @@ public class ClientTransformer implements IClassTransformer
 		//System.out.println("GuiMainMenu: " + cn.name);
 		
 		String guiScreen = DynamicMappings.getClassMapping("net/minecraft/client/gui/GuiScreen");		
-		String drawScreenMapping = DynamicMappings.getMethodMapping("net/minecraft/client/gui/GuiScreen drawScreen (IIF)V");		
-		MethodNode drawScreen = DynamicMappings.getMethodNode(cn, drawScreenMapping);
-		if (drawScreen == null) return basicClass;
 		
-		boolean matchedFirst = false;
-		for (AbstractInsnNode insn = drawScreen.instructions.getLast(); insn != null; insn = insn.getPrevious()) {
-			if (!matchedFirst && insn instanceof MethodInsnNode) {
-				MethodInsnNode mn = (MethodInsnNode)insn;				
-				if (drawScreenMapping.equals(mn.owner + " " + mn.name + " " + mn.desc)) {
-					matchedFirst = true;
-					continue;
+		String drawScreenMapping = DynamicMappings.getMethodMapping("net/minecraft/client/gui/GuiScreen drawScreen (IIF)V");		
+		MethodNode drawScreen = DynamicMappings.getMethodNode(cn, drawScreenMapping);		
+		if (drawScreen != null) {		
+			boolean matchedFirst = false;
+			for (AbstractInsnNode insn = drawScreen.instructions.getLast(); insn != null; insn = insn.getPrevious()) {
+				if (!matchedFirst && insn instanceof MethodInsnNode) {
+					MethodInsnNode mn = (MethodInsnNode)insn;				
+					if (drawScreenMapping.equals(mn.owner + " " + mn.name + " " + mn.desc)) {
+						matchedFirst = true;
+						continue;
+					}
+				}
+				if (matchedFirst && insn.getOpcode() == Opcodes.ALOAD) {
+					InsnList list = new InsnList();
+					list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+					list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/ClientProxy", "drawMainMenuBranding", "(L" + guiScreen + ";)V", false));
+					drawScreen.instructions.insertBefore(insn,  list);
+					break;
 				}
 			}
-			if (matchedFirst && insn.getOpcode() == Opcodes.ALOAD) {
+		}
+		
+		MethodNode initGui = DynamicMappings.getMethodNodeFromMapping(cn, "net/minecraft/client/gui/GuiScreen initGui ()V");
+		if (initGui != null) 
+		{
+			//System.out.println(cn.name + " " + initGui.name + " " + initGui.desc);
+			AbstractInsnNode returnOp = null;
+			for (AbstractInsnNode insn = initGui.instructions.getLast(); insn != null; insn = insn.getPrevious()) {
+				if (insn.getOpcode() == Opcodes.RETURN) { returnOp = insn; break; } 
+			}
+			
+			if (returnOp != null) {
 				InsnList list = new InsnList();
 				list.add(new VarInsnNode(Opcodes.ALOAD, 0));
-				list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/ClientProxy", "drawMainMenuBranding", "(L" + guiScreen + ";)V", false));
-				drawScreen.instructions.insertBefore(insn,  list);
-				break;
+				list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/ClientProxy", "initMainMenuHook", "(L" + cn.name + ";)V", false));
+				initGui.instructions.insertBefore(returnOp,  list);
 			}
+		}
+		
+		String guiButton = DynamicMappings.getClassMapping("net/minecraft/client/gui/GuiButton");
+		MethodNode actionPerformed = DynamicMappings.getMethodNodeFromMapping(cn, "net/minecraft/client/gui/GuiScreen actionPerformed (Lnet/minecraft/client/gui/GuiButton;)V");
+		if (actionPerformed != null && guiButton != null) {
+			LabelNode label = new LabelNode();
+			InsnList list = new InsnList();
+			list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+			list.add(new VarInsnNode(Opcodes.ALOAD, 1));
+			list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/ClientProxy", "actionPerformedMainMenuHook", "(L" + cn.name + ";L" + guiButton + ";)Z", false));
+			list.add(new JumpInsnNode(Opcodes.IFEQ, label));
+			list.add(new InsnNode(Opcodes.RETURN));
+			list.add(label);
+			actionPerformed.instructions.insert(list);
 		}
 		
 		ClassWriter writer = new ClassWriter(0);

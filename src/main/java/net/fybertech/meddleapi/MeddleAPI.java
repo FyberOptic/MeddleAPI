@@ -53,8 +53,11 @@ import org.apache.logging.log4j.Logger;
 // v1.0.4
 // - Removed some debug output that got left in
 // - Added proper access transformer system
-// -
-
+//
+// v1.0.5
+// - Added Meddle options button to main menu (doesn't do anything yet)
+// - Added float, double, and boolean types to config
+//
 
 public class MeddleAPI
 {
@@ -72,7 +75,7 @@ public class MeddleAPI
 
 	public static String getVersion()
 	{
-		return "1.0.4";
+		return "1.0.5";
 	}
 
 

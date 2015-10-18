@@ -144,13 +144,31 @@ public class ConfigFile
 	
 	public int stringToInt(String s)
 	{
-		int output = 0;
-		
+		int output = 0;		
 		try {
 			output = Integer.parseInt(s);
 		}
-		catch (NumberFormatException e) {}
-		
+		catch (NumberFormatException e) {}		
+		return output;
+	}
+	
+	public float stringToFloat(String s)
+	{
+		float output = 0;		
+		try {
+			output = Float.parseFloat(s);
+		}
+		catch (NumberFormatException e) {}		
+		return output;
+	}
+	
+	public double stringToDouble(String s)
+	{
+		double output = 0;		
+		try {
+			output = Double.parseDouble(s);
+		}
+		catch (NumberFormatException e) {}		
 		return output;
 	}
 	
@@ -165,6 +183,9 @@ public class ConfigFile
 		if (category.containsKey(key.keyName.toLowerCase())) {
 			String s = category.get(key.keyName.toLowerCase());
 			if (key.defaultValue instanceof Integer) key.setValue((T)(Integer)stringToInt(s));
+			else if (key.defaultValue instanceof Float) key.setValue((T)(Float)stringToFloat(s));
+			else if (key.defaultValue instanceof Double) key.setValue((T)(Double)stringToDouble(s));
+			else if (key.defaultValue instanceof Boolean) key.setValue((T)(Boolean)Boolean.parseBoolean(s));			
 			else key.setValue((T)s);
 			configData.add(key);
 			output = key.value;
