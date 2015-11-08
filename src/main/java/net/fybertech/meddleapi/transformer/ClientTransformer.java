@@ -206,26 +206,31 @@ public class ClientTransformer implements IClassTransformer
 		String guiScreen = DynamicMappings.getClassMapping("net/minecraft/client/gui/GuiScreen");		
 		
 		String drawScreenMapping = DynamicMappings.getMethodMapping("net/minecraft/client/gui/GuiScreen drawScreen (IIF)V");		
-		MethodNode drawScreen = DynamicMappings.getMethodNode(cn, drawScreenMapping);		
-		if (drawScreen != null) {		
-			boolean matchedFirst = false;
+		MethodNode drawScreen = DynamicMappings.getMethodNode(cn, drawScreenMapping);
+		boolean brandingHook = false;		
+		
+		if (drawScreen != null) {
 			for (AbstractInsnNode insn = drawScreen.instructions.getLast(); insn != null; insn = insn.getPrevious()) {
-				if (!matchedFirst && insn instanceof MethodInsnNode) {
-					MethodInsnNode mn = (MethodInsnNode)insn;				
-					if (drawScreenMapping.equals(mn.owner + " " + mn.name + " " + mn.desc)) {
-						matchedFirst = true;
-						continue;
-					}
-				}
-				if (matchedFirst && insn.getOpcode() == Opcodes.ALOAD) {
+				
+				// Find super.drawScreen(param0, param1, param2) at bottom of GuiScreen.drawScreen
+				AbstractInsnNode[] nodes = DynamicMappings.getOpcodeSequenceArray(insn, Opcodes.ALOAD, Opcodes.ILOAD, Opcodes.ILOAD, Opcodes.FLOAD, Opcodes.INVOKESPECIAL);
+				if (nodes != null) {
+					if (((VarInsnNode)nodes[0]).var != 0) continue;
+					MethodInsnNode mn = (MethodInsnNode)nodes[4];
+					if (!drawScreenMapping.equals(mn.owner + " " + mn.name + " " + mn.desc)) continue;
+					
 					InsnList list = new InsnList();
 					list.add(new VarInsnNode(Opcodes.ALOAD, 0));
-					list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/ClientProxy", "drawMainMenuBranding", "(L" + guiScreen + ";)V", false));
-					drawScreen.instructions.insertBefore(insn,  list);
+					list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/MeddleClientHooks", "drawMainMenuBranding", "(L" + guiScreen + ";)V", false));
+					drawScreen.instructions.insertBefore(nodes[0],  list);
+					
+					brandingHook = true;
 					break;
 				}
 			}
 		}
+		if (!brandingHook) MeddleAPI.LOGGER.error("[MeddleAPI] Unable to add drawMainMenuBranding hook!");
+		
 		
 		MethodNode initGui = DynamicMappings.getMethodNodeFromMapping(cn, "net/minecraft/client/gui/GuiScreen initGui ()V");
 		if (initGui != null) 
@@ -239,7 +244,7 @@ public class ClientTransformer implements IClassTransformer
 			if (returnOp != null) {
 				InsnList list = new InsnList();
 				list.add(new VarInsnNode(Opcodes.ALOAD, 0));
-				list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/ClientProxy", "initMainMenuHook", "(L" + cn.name + ";)V", false));
+				list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/MeddleClientHooks", "initMainMenuHook", "(L" + cn.name + ";)V", false));
 				initGui.instructions.insertBefore(returnOp,  list);
 			}
 		}
@@ -251,7 +256,7 @@ public class ClientTransformer implements IClassTransformer
 			InsnList list = new InsnList();
 			list.add(new VarInsnNode(Opcodes.ALOAD, 0));
 			list.add(new VarInsnNode(Opcodes.ALOAD, 1));
-			list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/ClientProxy", "actionPerformedMainMenuHook", "(L" + cn.name + ";L" + guiButton + ";)Z", false));
+			list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/MeddleClientHooks", "actionPerformedMainMenuHook", "(L" + cn.name + ";L" + guiButton + ";)Z", false));
 			list.add(new JumpInsnNode(Opcodes.IFEQ, label));
 			list.add(new InsnNode(Opcodes.RETURN));
 			list.add(label);

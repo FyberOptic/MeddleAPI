@@ -26,6 +26,7 @@ import net.fybertech.dynamicmappings.DynamicMappings;
 import net.fybertech.dynamicmappings.InheritanceMap;
 import net.fybertech.dynamicmappings.InheritanceMap.FieldHolder;
 import net.fybertech.dynamicmappings.InheritanceMap.MethodHolder;
+import net.fybertech.meddle.Meddle;
 import net.fybertech.meddle.MeddleUtil;
 import net.fybertech.meddleapi.MeddleAPI;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -43,8 +44,8 @@ public class Transformer implements IClassTransformer
 	String dedicatedServerClass = null;
 	String startServer_name = null;
 	
-	
-
+	String containerWorkbench = DynamicMappings.getClassMapping("net/minecraft/inventory/ContainerWorkbench");
+	String entityPlayerMP = DynamicMappings.getClassMapping("net/minecraft/entity/player/EntityPlayerMP");
 	
 
 	
@@ -57,11 +58,18 @@ public class Transformer implements IClassTransformer
 		//if (blockClass != null && name.equals(blockClass)) return transformBlock(basicClass);
 		//if (itemClass != null && name.equals(itemClass)) return transformItem(basicClass);
 		//if (slotClass != null && name.equals(slotClass)) return transformSlot(basicClass);
+		else if (containerWorkbench != null && containerWorkbench.equals(name)) basicClass = transformContainerWorkbench(basicClass);
+		else if (entityPlayerMP != null && entityPlayerMP.equals(name)) basicClass = transformEntityPlayerMP(basicClass);
 		
 		return basicClass;
 	}
 	
 	
+	private byte[] failGracefully(String error, byte[] bytes)
+	{
+		Meddle.LOGGER.error("[MeddleAPI] " + error);
+		return bytes;
+	}
 	
 	
 
@@ -247,6 +255,64 @@ public class Transformer implements IClassTransformer
 		//  INVOKESTATIC java/lang/System.nanoTime ()J
 		
 		
+		
+		ClassWriter writer = new ClassWriter(0);
+		cn.accept(writer);
+		return writer.toByteArray();		
+	}
+	
+	
+	
+	private byte[] transformContainerWorkbench(byte[] basicClass)
+	{
+		ClassReader reader = new ClassReader(basicClass);
+		ClassNode cn = new ClassNode();
+		reader.accept(cn,  0);	
+		
+		MethodNode onChanged = DynamicMappings.getMethodNodeFromMapping(cn, "net/minecraft/inventory/Container onCraftMatrixChanged (Lnet/minecraft/inventory/IInventory;)V");
+		if (onChanged == null) return failGracefully("Couldn't locate Container.onCraftMatrixChanged!", basicClass);
+		
+		String detectAndSend = DynamicMappings.getMethodMapping("net/minecraft/inventory/Container detectAndSendChanges ()V");
+		if (detectAndSend == null) return failGracefully("Couldn't locate Container.detectAndSendChanges!", basicClass);
+		
+		AbstractInsnNode returnNode = null;
+		for (AbstractInsnNode insn = onChanged.instructions.getLast(); insn != null; insn = insn.getPrevious()) {
+			if (insn.getOpcode() == Opcodes.RETURN) { returnNode = insn; break; }
+		}
+		
+		String container = DynamicMappings.getClassMapping("net/minecraft/inventory/Container");
+		
+		InsnList list = new InsnList();
+		//list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+		//list.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, cn.name, detectAndSend.split(" ")[1], "()V", false));
+		list.add(new VarInsnNode(Opcodes.ALOAD, 0));
+		list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "net/fybertech/meddleapi/MeddleHooks", "containerWorkbenchHook", "(L" + container + ";)V", false));
+		
+		onChanged.instructions.insertBefore(returnNode, list);
+		
+		ClassWriter writer = new ClassWriter(0);
+		cn.accept(writer);
+		return writer.toByteArray();		
+	}
+	
+	
+	// Remove restriction on SlotCrafting slots not being updated by EntityPlayerMP.sendSlotContents
+	private byte[] transformEntityPlayerMP(byte[] basicClass)
+	{
+		ClassReader reader = new ClassReader(basicClass);
+		ClassNode cn = new ClassNode();
+		reader.accept(cn,  0);	
+		
+		MethodNode sendSlotContents = DynamicMappings.getMethodNodeFromMapping(cn, "net/minecraft/inventory/ICrafting sendSlotContents (Lnet/minecraft/inventory/Container;ILnet/minecraft/item/ItemStack;)V");
+		if (sendSlotContents == null) return failGracefully("Couldn't locate EntityPlayerMP.sendSlotContents!", basicClass);
+		
+		AbstractInsnNode[] nodes = DynamicMappings.getOpcodeSequenceArray(sendSlotContents.instructions.getFirst(), Opcodes.ALOAD, Opcodes.ILOAD, Opcodes.INVOKEVIRTUAL, Opcodes.INSTANCEOF, Opcodes.IFEQ, Opcodes.RETURN);
+		if (nodes == null) return failGracefully("Unable to locate opcode sequence in EntityPlayerMP.sendSlotContents!", basicClass);
+		
+		for (AbstractInsnNode insn : nodes) {
+			sendSlotContents.instructions.remove(insn);
+		}
+		//System.out.println("Patched EntityPlayerMP.sendSlotContents");
 		
 		ClassWriter writer = new ClassWriter(0);
 		cn.accept(writer);

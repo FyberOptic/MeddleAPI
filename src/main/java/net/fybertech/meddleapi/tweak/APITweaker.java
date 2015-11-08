@@ -24,45 +24,13 @@ import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 
-@MeddleMod(id="meddleapi", name="MeddleAPI", version="1.0.5", author="FyberOptic", depends={"dynamicmappings"})
+@MeddleMod(id="meddleapi", name="MeddleAPI", version="1.0.6", author="FyberOptic", depends={"dynamicmappings"})
 public class APITweaker implements ITweaker
 {	
 		
 	@Override
 	public void acceptOptions(List<String> args, File gameDir, File assetsDir, String profile) 
-	{
-		/*for (ModContainer mc : Meddle.discoveredModsList) 
-		{
-			JarFile jar = null;
-			try {
-				jar = new JarFile(mc.jar);
-						
-				ZipEntry entry = jar.getEntry("accesstransformer.cfg");
-				if (entry != null) 
-				{
-					BufferedReader reader = new BufferedReader(new InputStreamReader(jar.getInputStream(entry)));				
-					String line = null;
-					
-					while ((line = reader.readLine()) != null) {
-						// Ignore commented or short lines
-						if (line.startsWith("#") || line.length() < 1) continue;
-						
-						String[] split = line.split(" ", 1);
-						if (split.length < 2) continue;
-						
-						String mode = split[0].toUpperCase();
-						String ac = split[1];
-												
-						if (mode.equals("F")) accessTransformerFields.add(ac);
-						else if (mode.equals("M")) accessTransformerMethods.add(ac);						
-					}
-				}				
-			
-				jar.close();
-			} 
-			catch (IOException e) {}
-			finally { try { if (jar != null) jar.close(); } catch (IOException e) {} }
-		}*/
+	{		
 	}
 
 	@Override
@@ -83,5 +51,4 @@ public class APITweaker implements ITweaker
 	public String[] getLaunchArguments() {
 		return new String[0];
 	}
-
 }

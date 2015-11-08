@@ -58,6 +58,10 @@ import org.apache.logging.log4j.Logger;
 // - Added Meddle options button to main menu (doesn't do anything yet)
 // - Added float, double, and boolean types to config
 //
+// v1.0.6
+// - Force crafting results to sync to the client, allowing for server-side recipes
+// - Fixed main menu Meddle branding for 15w45a
+// 
 
 public class MeddleAPI
 {
@@ -72,10 +76,18 @@ public class MeddleAPI
 	
 	public static Object mainObject = null;
 
+	
+	private static String meddleAPIVersion = null;
 
 	public static String getVersion()
 	{
-		return "1.0.5";
+		if (meddleAPIVersion == null) {
+			Meddle.ModContainer mc = Meddle.loadedModsList.get("meddleapi");
+			if (mc != null) meddleAPIVersion = mc.meta.version();
+			else meddleAPIVersion = "n/a";
+		}
+		
+		return meddleAPIVersion;
 	}
 
 

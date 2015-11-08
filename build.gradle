@@ -8,7 +8,7 @@ apply plugin: 'java'
 
 
 project.ext {
-    mcVersion = '15w42a'
+    mcVersion = '15w45a'
     cacheDir = 'cache/'
 
     mcJarFilename = mcVersion + '.jar'
@@ -32,14 +32,10 @@ repositories {
 }
 
 
-dependencies {
-    //compile fileTree(dir:'../libs/', excludes:['minecraft/**'])
-    //compile files('build/mcremapped.jar')
-    //compile rootProject.project(':DynamicMappings')
+dependencies {    
+    compile 'net.fybertech:meddle:1.3'
     
-    compile 'net.fybertech:meddle:1.2.2'
-    
-    compile 'net.fybertech:dynamicmappings:015'
+    compile 'net.fybertech:dynamicmappings:019'
     //compile files('../dynamicmappings/bin')
     
     compile 'net.minecraft:launchwrapper:1.11'
@@ -64,7 +60,7 @@ targetCompatibility = '1.7'
 
 jar {
     baseName = 'meddleapi'
-    version = '1.0.5'
+    version = '1.0.6'
     
     manifest {
 		attributes('TweakClass' : 'net.fybertech.meddleapi.tweak.APITweaker')
@@ -95,19 +91,14 @@ task remapMinecraft(type: JavaExec, dependsOn: 'getMinecraft') {
         }
         
         // TODO - Remove
-        classpath files('../DynamicMappings/bin/')
+        // classpath files('../DynamicMappings/bin/')
 
         classpath fileTree(new File("${->project.cacheDir}", 'libraries/'))
+        
+        args = ['-o', "${->project.cacheDir}/${->project.remappedJarFilename}"]
     }
     classpath sourceSets.main.resources.getSrcDirs()
-    main = 'net.fybertech.dynamicmappings.DynamicRemap'
-
-    doLast {
-        // Do all this until DynamicRemap accepts a destination jar
-        Path dest = (new File("${->project.cacheDir}", "${->project.remappedJarFilename}")).toPath()
-        println "Moving mapped jar to " + dest
-        Files.move(Paths.get('mcremapped.jar'), dest, StandardCopyOption.REPLACE_EXISTING);
-    }
+    main = 'net.fybertech.dynamicmappings.DynamicRemap'    
 
     inputs.file { files(new File("${->project.cacheDir}", "${->project.mcJarFilename}")) }
     outputs.file { files(new File("${->project.cacheDir}", "${->project.remappedJarFilename}")) }
