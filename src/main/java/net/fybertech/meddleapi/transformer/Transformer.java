@@ -172,7 +172,7 @@ public class Transformer implements IClassTransformer
 		
 		if (!MeddleUtil.isClientJar())
 		{
-			for (MethodNode method : cn.methods) {
+			for (MethodNode method : (List<MethodNode>)cn.methods) {
 				if (method.name.equals("main") && method.desc.equals("([Ljava/lang/String;)V")) {
 					for (AbstractInsnNode insn = method.instructions.getFirst(); insn != null; insn = insn.getNext()) 
 					{

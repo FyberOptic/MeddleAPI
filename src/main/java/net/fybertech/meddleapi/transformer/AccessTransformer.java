@@ -17,6 +17,7 @@ import org.objectweb.asm.tree.MethodNode;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -132,7 +133,7 @@ public class AccessTransformer  implements IClassTransformer
 			{
 				// Check if this field has been defined in the specific class for the access transformation
 				boolean found = false;
-				for (FieldNode field : classNode.fields) {
+				for (FieldNode field : (List<FieldNode>)classNode.fields) {
 					if (key.equals(field.name + " " + field.desc)) { found = true; break; }
 				}
 				// If not, ignore it, you can't change access if it's not there
@@ -200,7 +201,7 @@ public class AccessTransformer  implements IClassTransformer
 			{
 				// Check if this method has been defined in the specific class for the access transformation
 				boolean found = false;
-				for (MethodNode method : classNode.methods) {
+				for (MethodNode method : (List<MethodNode>)classNode.methods) {
 					if (key.equals(method.name + " " + method.desc)) { found = true; break; }
 				}
 				// If not, ignore it, you can't change access if it's not there
@@ -254,7 +255,7 @@ public class AccessTransformer  implements IClassTransformer
 		
 		int allAccess = Opcodes.ACC_PUBLIC | Opcodes.ACC_PROTECTED | Opcodes.ACC_PRIVATE;
 		
-		for (FieldNode field : cn.fields) {
+		for (FieldNode field : (List<FieldNode>)cn.fields) {
 			String key = cn.name + " " + field.name + " " + field.desc;
 			if (!expandedFieldTransformers.containsKey(key)) continue;
 			int access = expandedFieldTransformers.get(key);
@@ -262,7 +263,7 @@ public class AccessTransformer  implements IClassTransformer
 			field.access = (field.access & ~allAccess) | access;
 		}
 		
-		for (MethodNode method : cn.methods) {
+		for (MethodNode method : (List<MethodNode>)cn.methods) {
 			String key = cn.name + " " + method.name + " " + method.desc;
 			if (!expandedMethodTransformers.containsKey(key)) continue;
 			int access = expandedMethodTransformers.get(key);

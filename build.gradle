@@ -8,7 +8,7 @@ apply plugin: 'java'
 
 
 project.ext {
-    mcVersion = '15w45a'
+    mcVersion = '16w39a'
     cacheDir = 'cache/'
 
     mcJarFilename = mcVersion + '.jar'
@@ -35,7 +35,7 @@ repositories {
 dependencies {    
     compile 'net.fybertech:meddle:1.3'
     
-    compile 'net.fybertech:dynamicmappings:019'
+    compile 'net.fybertech:dynamicmappings:028'
     //compile files('../dynamicmappings/bin')
     
     compile 'net.minecraft:launchwrapper:1.11'
@@ -60,7 +60,7 @@ targetCompatibility = '1.7'
 
 jar {
     baseName = 'meddleapi'
-    version = '1.0.6'
+    version = '1.0.7'
     
     manifest {
 		attributes('TweakClass' : 'net.fybertech.meddleapi.tweak.APITweaker')
@@ -91,7 +91,7 @@ task remapMinecraft(type: JavaExec, dependsOn: 'getMinecraft') {
         }
         
         // TODO - Remove
-        // classpath files('../DynamicMappings/bin/')
+        //classpath files('../DynamicMappings/bin/')
 
         classpath fileTree(new File("${->project.cacheDir}", 'libraries/'))
         
