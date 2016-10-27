@@ -16,6 +16,7 @@ import org.objectweb.asm.tree.ClassNode;
 import net.fybertech.dynamicmappings.DynamicMappings;
 import net.fybertech.dynamicmappings.DynamicRemap;
 import net.fybertech.dynamicmappings.InheritanceMap;
+import net.fybertech.meddleapi.MeddleAPI;
 import net.minecraft.launchwrapper.IClassTransformer;
 
 public class ReobfTransformer implements IClassTransformer
@@ -37,7 +38,9 @@ public class ReobfTransformer implements IClassTransformer
 			"com.mojang.",
 			"net.minecraft.",
 			"oshi.",
-			"com.ibm."
+			"com.ibm.",
+			"com.eq2online.",
+			"com.mumfrey."
 	};
 
 
@@ -109,6 +112,12 @@ public class ReobfTransformer implements IClassTransformer
 				if (transformedCache.containsKey(className)) return transformedCache.get(className);
 				
 				ClassNode cn = super.getClassNode(className);
+				// make sure a NullPointerException is never thrown here
+				if (cn == null) {
+					MeddleAPI.LOGGER.error("Class node for " + className + " is null!");
+					return null;
+				}
+
 				ClassWriter writer = new ClassWriter(0);
 				cn.accept(writer);
 				
